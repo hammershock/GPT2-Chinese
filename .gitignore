@@ -1,0 +1,4 @@
+*.zip
+/models/
+/data/
+/tokenizer/.cache/
