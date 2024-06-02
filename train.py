@@ -22,12 +22,37 @@ from transformers import GPT2LMHeadModel, TrainingArguments, Trainer
 
 
 class MyTrainer(Trainer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.epoch = 0
+        self.log_file = open(os.path.join(self.args.output_dir, 'training_log.txt'), 'a')
+
+    def log(self, logs):
+        super().log(logs)
+        if 'loss' in logs:
+            loss = logs['loss']
+            perplexity = torch.exp(torch.tensor(loss))
+            log_str = f"Epoch {self.epoch} - Loss: {loss}, Perplexity: {perplexity}\n"
+            self.log_file.write(log_str)
+            self.log_file.flush()
+
+    def training_step(self, model, inputs):
+        self.epoch += 1 / len(self.get_train_dataloader())
+        return super().training_step(model, inputs)
+
+    def save_model(self, output_dir=None, _internal_call=False):
+        super().save_model(output_dir, _internal_call)
+        self.epoch = int(self.state.epoch)
+
     def compute_loss(self, model, inputs, return_outputs=False):
         # Forward pass
         outputs = model(input_ids=inputs['input_ids'], attention_mask=inputs['attention_mask'],
                         labels=inputs['input_ids'])
         loss = outputs.loss
         return (loss, outputs) if return_outputs else loss
+
+    def __del__(self):
+        self.log_file.close()
 
 
 def collate_fn(batch):
@@ -37,7 +62,6 @@ def collate_fn(batch):
 
 
 if __name__ == '__main__':
-    data_root_dir = './RA2Parrot/datasets_/红警HBK08/subtitles'
     model_name = 'gpt2-distil-chinese-cluecorpussmall'
     checkpoint_dir = './results'
 
