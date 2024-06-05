@@ -1,1 +1,4 @@
-# subword-nmt learn-bpe -s 16000 < filtered_text.txt > codes.bpe
+# GPT-2 Chinese
+
+Train your own Chinese GPT-2 model from given corpus!
+
